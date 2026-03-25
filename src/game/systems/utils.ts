@@ -11,7 +11,7 @@ export function clamp01to100(n: number) {
 
 export function pickTags(rng: { int: (minInclusive: number, maxInclusive: number) => number }, morality: 'HERO' | 'VILLAIN' | 'ROGUE') {
   const common: Tag[] = ['TECH', 'ARMORED', 'MYSTIC', 'AERIAL', 'HOSTAGES', 'FIRE'];
-  const pool = morality === 'HERO' ? common : morality === 'VILLAIN' ? [...common, 'GANG'] : [...common, 'ALIEN'];
+  const pool: Tag[] = morality === 'HERO' ? common : morality === 'VILLAIN' ? [...common, 'GANG'] : [...common, 'ALIEN'];
 
   const count = rng.int(1, 2);
   const tags: Tag[] = [];
