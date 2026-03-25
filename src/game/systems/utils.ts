@@ -16,7 +16,7 @@ export function pickTags(rng: { int: (minInclusive: number, maxInclusive: number
   const count = rng.int(1, 2);
   const tags: Tag[] = [];
   while (tags.length < count) {
-    const t = pool[rng.int(0, pool.length - 1)];
+    const t: Tag = pool[rng.int(0, pool.length - 1)];
     if (!tags.includes(t)) tags.push(t);
   }
 
