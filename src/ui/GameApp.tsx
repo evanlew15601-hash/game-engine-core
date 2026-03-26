@@ -76,7 +76,7 @@ const selectClass = "bg-muted border border-input rounded text-xs p-1 text-secon
 
 export function GameApp(props: { onReturnToTitle?: () => void }) {
   const [resetKey, setResetKey] = useState(0);
-  const [viewTick, setViewTick] = useState(0);
+  const [, setUiVersion] = useState(0);
   const [saveSlots, setSaveSlots] = useState(() => SAVE_SLOTS.map((s) => readSaveSlot(s)));
   const [selectedIncidentId, setSelectedIncidentId] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
@@ -92,8 +92,8 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
     return createGameEngine({ defs, world });
   }, [resetKey]);
 
+  const refreshUi = () => setUiVersion((n) => n + 1);
   const canAct = engine.world.game.state === 'RUNNING' && phaseReport === null;
-  if (viewTick !== engine.world.time.tick) setViewTick(engine.world.time.tick);
 
   const phase = getPhaseLabel(engine.defs.rules.ticksPerDay, engine.world.time.tick);
   const dayNum = getDayNumber(engine.defs.rules.ticksPerDay, engine.world.time.tick);
@@ -187,7 +187,7 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
     );
 
     tick(engine, toTick - fromTick);
-    setViewTick(engine.world.time.tick);
+    refreshUi();
 
     const after = snapshotForReport(engine);
     const events = engine.world.log.slice(beforeLogLen);
@@ -428,7 +428,7 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
                     <option value="STANDARD">Standard</option>
                     <option value="PREMIUM">Premium</option>
                   </select>
-                  <select onChange={(e) => { if (!e.target.value) return; dispatch(engine, { type: 'BUY_INTEL', incidentId: selectedIncident.id, rogueId: e.target.value, tier: selectedIntelTier }); setViewTick(engine.world.time.tick); e.currentTarget.selectedIndex = 0; }} defaultValue="" disabled={!canAct || phase === 'NIGHT'} className={selectClass}>
+                  <select onChange={(e) => { if (!e.target.value) return; dispatch(engine, { type: 'BUY_INTEL', incidentId: selectedIncident.id, rogueId: e.target.value, tier: selectedIntelTier }); refreshUi(); e.currentTarget.selectedIndex = 0; }} defaultValue="" disabled={!canAct || phase === 'NIGHT'} className={selectClass}>
                     <option value="" disabled>Buy intel via…</option>
                     {rogues.filter((r) => r.status.type === 'AVAILABLE').map((r) => (
                       <option key={r.id} value={r.id}>{r.name} (loy {Math.round(r.loyalty)})</option>
@@ -482,7 +482,7 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
                 <button
                   onClick={() => {
                     dispatch(engine, { type: 'DISPATCH_TEAM', incidentId: selectedIncident.id, agentIds: selectedAgents, tactic: selectedTactic, overtime: phase === 'DAY' ? useOvertimeDispatch : undefined });
-                    setSelectedAgents([]); setUseOvertimeDispatch(false); setViewTick(engine.world.time.tick);
+                    setSelectedAgents([]); setUseOvertimeDispatch(false); refreshUi();
                   }}
                   disabled={!canAct || selectedAgents.length === 0 || (phase === 'DAY' && (!useOvertimeDispatch || engine.world.company.cash < engine.defs.rules.overtimeDispatch.costCash))}
                   className={`${btnPrimary} w-full`}
@@ -518,12 +518,12 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
                 </div>
                 <div className="flex gap-1 mt-1.5">
                   {(['NONE', 'BASIC', 'PREMIUM'] as CoverageTier[]).map((tier) => (
-                    <button key={tier} onClick={() => { dispatch(engine, { type: 'SET_COVERAGE', district: districtForPanel, tier }); setViewTick(engine.world.time.tick); }} disabled={!canAct || phase === 'NIGHT' || selectedDistrictState.tier === tier}
+                    <button key={tier} onClick={() => { dispatch(engine, { type: 'SET_COVERAGE', district: districtForPanel, tier }); refreshUi(); }} disabled={!canAct || phase === 'NIGHT' || selectedDistrictState.tier === tier}
                       className={`${selectedDistrictState.tier === tier ? 'bg-primary/20 border-primary/40' : 'bg-muted border-border'} border rounded px-2 py-0.5 text-[10px] font-semibold disabled:opacity-40 cursor-pointer`}>
                       {tier}
                     </button>
                   ))}
-                  <button onClick={() => { dispatch(engine, { type: 'BUY_EMERGENCY_COVERAGE', district: districtForPanel }); setViewTick(engine.world.time.tick); }}
+                  <button onClick={() => { dispatch(engine, { type: 'BUY_EMERGENCY_COVERAGE', district: districtForPanel }); refreshUi(); }}
                     disabled={!canAct || phase === 'NIGHT' || engine.world.company.cash < engine.defs.subscriptions.emergencyCoverage.costCash || selectedDistrictState.tier === 'PREMIUM'}
                     className={`${btnDanger} text-[10px] px-2 py-0.5`}>
                     {selectedDistrictState.emergency ? 'Extend EMR' : 'EMR'} (${engine.defs.subscriptions.emergencyCoverage.costCash})
@@ -543,7 +543,7 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
               <div className="flex gap-1 flex-wrap mb-2">
                 <span className="text-[10px] text-[hsl(35,80%,60%)] font-semibold self-center">Quick:</span>
                 {billingForecast.entries.filter((x) => x.refund >= engine.defs.subscriptions.chargebackRefundThreshold).slice(0, 2).map((x) => (
-                  <button key={x.district} onClick={() => { dispatch(engine, { type: 'BUY_EMERGENCY_COVERAGE', district: x.district }); setViewTick(engine.world.time.tick); }}
+                  <button key={x.district} onClick={() => { dispatch(engine, { type: 'BUY_EMERGENCY_COVERAGE', district: x.district }); refreshUi(); }}
                     disabled={!canAct || engine.world.company.cash < engine.defs.subscriptions.emergencyCoverage.costCash}
                     className={`${btnDanger} text-[10px] px-2 py-0.5`}>
                     EMR → {x.district}
@@ -575,11 +575,11 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
                     </div>
                     <div className="flex gap-1 mt-1">
                       {(['NONE', 'BASIC', 'PREMIUM'] as CoverageTier[]).map((tier) => (
-                        <button key={tier} onClick={() => { dispatch(engine, { type: 'SET_COVERAGE', district: d, tier }); setViewTick(engine.world.time.tick); }} disabled={!canAct || phase === 'NIGHT' || sub.tier === tier} className={`${sub.tier === tier ? 'bg-primary/20 border-primary/40' : 'bg-muted border-border'} border rounded px-2 py-0.5 text-[10px] font-semibold disabled:opacity-40 cursor-pointer`}>
+                        <button key={tier} onClick={() => { dispatch(engine, { type: 'SET_COVERAGE', district: d, tier }); refreshUi(); }} disabled={!canAct || phase === 'NIGHT' || sub.tier === tier} className={`${sub.tier === tier ? 'bg-primary/20 border-primary/40' : 'bg-muted border-border'} border rounded px-2 py-0.5 text-[10px] font-semibold disabled:opacity-40 cursor-pointer`}>
                           {tier}
                         </button>
                       ))}
-                      <button onClick={() => { dispatch(engine, { type: 'BUY_EMERGENCY_COVERAGE', district: d }); setViewTick(engine.world.time.tick); }} disabled={!canAct || phase === 'NIGHT' || engine.world.company.cash < engine.defs.subscriptions.emergencyCoverage.costCash || sub.tier === 'PREMIUM' || (sub.tier === engine.defs.subscriptions.emergencyCoverage.tier && !sub.emergency)}
+                      <button onClick={() => { dispatch(engine, { type: 'BUY_EMERGENCY_COVERAGE', district: d }); refreshUi(); }} disabled={!canAct || phase === 'NIGHT' || engine.world.company.cash < engine.defs.subscriptions.emergencyCoverage.costCash || sub.tier === 'PREMIUM' || (sub.tier === engine.defs.subscriptions.emergencyCoverage.tier && !sub.emergency)}
                         className={`${btnDanger} text-[10px] px-2 py-0.5`}>
                         EMR
                       </button>
@@ -596,8 +596,8 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
 
             {/* Alignment */}
             <div className="flex gap-1.5 mb-2">
-              <button onClick={() => { dispatch(engine, { type: 'SET_ALIGNMENT', alignment: 'HERO' }); setViewTick(engine.world.time.tick); }} disabled={!canAct} className={engine.world.player.alignment === 'HERO' ? btnPrimary : btnSecondary}>HERO</button>
-              <button onClick={() => { dispatch(engine, { type: 'SET_ALIGNMENT', alignment: 'VILLAIN' }); setViewTick(engine.world.time.tick); }} disabled={!canAct} className={engine.world.player.alignment === 'VILLAIN' ? `${btn} bg-[hsl(280,60%,40%)] text-white` : btnSecondary}>VILLAIN</button>
+              <button onClick={() => { dispatch(engine, { type: 'SET_ALIGNMENT', alignment: 'HERO' }); refreshUi(); }} disabled={!canAct} className={engine.world.player.alignment === 'HERO' ? btnPrimary : btnSecondary}>HERO</button>
+              <button onClick={() => { dispatch(engine, { type: 'SET_ALIGNMENT', alignment: 'VILLAIN' }); refreshUi(); }} disabled={!canAct} className={engine.world.player.alignment === 'VILLAIN' ? `${btn} bg-[hsl(280,60%,40%)] text-white` : btnSecondary}>VILLAIN</button>
             </div>
 
             {/* Recruitment */}
@@ -607,14 +607,14 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
                 {engine.world.recruitment.candidates.map((c) => (
                   <div key={c.id} className="flex items-center justify-between text-xs bg-muted rounded px-2 py-1">
                     <span>{c.name} <span className="text-muted-foreground">({c.morality} pw{c.power})</span></span>
-                    <button onClick={() => { dispatch(engine, { type: 'RECRUIT', candidateId: c.id }); setViewTick(engine.world.time.tick); }} disabled={!canAct || phase === 'NIGHT'} className={btnSecondary}>Recruit</button>
+                    <button onClick={() => { dispatch(engine, { type: 'RECRUIT', candidateId: c.id }); refreshUi(); }} disabled={!canAct || phase === 'NIGHT'} className={btnSecondary}>Recruit</button>
                   </div>
                 ))}
                 {engine.world.recruitment.candidates.length === 0 && (
                   <p className="text-[10px] text-muted-foreground">No candidates available.</p>
                 )}
               </div>
-              <button onClick={() => { dispatch(engine, { type: 'REFRESH_RECRUITMENT' }); setViewTick(engine.world.time.tick); }} disabled={!canAct || phase === 'NIGHT'} className={`${btnSecondary} mt-1 w-full`}>
+              <button onClick={() => { dispatch(engine, { type: 'REFRESH_RECRUITMENT' }); refreshUi(); }} disabled={!canAct || phase === 'NIGHT'} className={`${btnSecondary} mt-1 w-full`}>
                 Refresh (${engine.defs.recruitment.manualRefresh.costCash})
               </button>
             </div>
@@ -635,7 +635,7 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
                     }} className={btnSecondary}>Save {slot}</button>
                     <button onClick={() => {
                       const data = readSaveSlot(slot); if (!data) return;
-                      engine.load(data.save); setViewTick(engine.world.time.tick);
+                      engine.load(data.save); refreshUi();
                       setSelectedIncidentId(''); setSelectedAgents([]); setUseOvertimeDispatch(false);
                       setPhaseReport(null); setSaveSlots(SAVE_SLOTS.map((s) => readSaveSlot(s)));
                     }} disabled={!s} className={btnSecondary}>Load</button>
