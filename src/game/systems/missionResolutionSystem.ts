@@ -130,6 +130,10 @@ function resolveEngagement(engine: Engine<Defs>, missionId: string) {
     collateral,
     injuries,
   });
+
+  // Transition to AFTERMATH phase so missionProgressSystem can free agents
+  mission.phase = 'AFTERMATH';
+  mission.remainingTicks = 2;
 }
 
 function clamp01(n: number) {

@@ -34,9 +34,8 @@ function runMissionProgress(engine: Engine<Defs>) {
       continue;
     }
 
+    // ENGAGE with 0 remaining is handled by missionResolutionSystem
     if (mission.phase === 'ENGAGE') {
-      mission.phase = 'AFTERMATH';
-      mission.remainingTicks = 2;
       continue;
     }
 
