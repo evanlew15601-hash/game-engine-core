@@ -413,7 +413,7 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
                   const missionAgents = m.agentIds.map((id) => allAgents.find((a) => a.id === id)).filter(Boolean) as typeof allAgents;
                   const totalTravelTicks = incident ? computeTravelTicks({ districts: engine.defs.subscriptions.districts, district: incident.district, severity: incident.severity, heat: 0, intelBonusTicks: 0 }) : 10;
                   const phaseLabel = m.phase;
-                  const phaseDurations: Record<string, number> = { TRAVEL: totalTravelTicks, ENGAGE: engine.defs.rules.engageTicks ?? 4, AFTERMATH: engine.defs.rules.aftermathTicks ?? 2 };
+                  const phaseDurations: Record<string, number> = { TRAVEL: totalTravelTicks, ENGAGE: 4, AFTERMATH: 2 };
                   const totalForPhase = phaseDurations[phaseLabel] || 6;
                   const elapsed = Math.max(0, totalForPhase - m.remainingTicks);
                   const progressPct = totalForPhase > 0 ? Math.min(100, (elapsed / totalForPhase) * 100) : 0;
