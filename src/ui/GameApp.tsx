@@ -400,8 +400,65 @@ export function GameApp(props: { onReturnToTitle?: () => void }) {
           </div>
         </div>
 
-        {/* ─── RIGHT COL: Dispatch + Coverage + Controls ─── */}
+        {/* ─── RIGHT COL: Missions + Dispatch + Coverage + Controls ─── */}
         <div className="space-y-3">
+
+          {/* ─── Active Missions Panel ─── */}
+          {engine.world.missions.length > 0 && (
+            <div className={panel}>
+              <h2 className="text-sm font-bold text-accent mb-2">Active Missions ({engine.world.missions.length})</h2>
+              <div className="space-y-2">
+                {engine.world.missions.map((m) => {
+                  const incident = engine.world.incidents.find((i) => i.id === m.incidentId);
+                  const missionAgents = m.agentIds.map((id) => allAgents.find((a) => a.id === id)).filter(Boolean) as typeof allAgents;
+                  const totalTravelTicks = incident ? computeTravelTicks({ districts: engine.defs.subscriptions.districts, district: incident.district, severity: incident.severity, heat: 0, intelBonusTicks: 0 }) : 10;
+                  const phaseLabel = m.phase;
+                  const phaseDurations: Record<string, number> = { TRAVEL: totalTravelTicks, ENGAGE: 4, AFTERMATH: 2 };
+                  const totalForPhase = phaseDurations[phaseLabel] || 6;
+                  const elapsed = Math.max(0, totalForPhase - m.remainingTicks);
+                  const progressPct = totalForPhase > 0 ? Math.min(100, (elapsed / totalForPhase) * 100) : 0;
+                  const phaseColor = phaseLabel === 'TRAVEL' ? 'bg-primary' : phaseLabel === 'ENGAGE' ? 'bg-destructive' : 'bg-accent';
+                  const phaseTextColor = phaseLabel === 'TRAVEL' ? 'text-primary' : phaseLabel === 'ENGAGE' ? 'text-destructive' : 'text-accent';
+
+                  return (
+                    <div key={m.id} className="bg-muted rounded-lg p-2 border border-border">
+                      <div className="flex justify-between items-center text-xs mb-1">
+                        <span className="font-semibold">{incident?.kind ?? m.incidentId}</span>
+                        <span className={`font-mono text-[10px] font-bold ${phaseTextColor}`}>{phaseLabel}</span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground mb-1.5">
+                        {incident?.district ?? '???'} • {m.tactic} • {m.remainingTicks}t remaining
+                        {m.lateByTicks > 0 && <span className="text-destructive ml-1">+{m.lateByTicks}t late</span>}
+                      </div>
+                      {/* Progress bar */}
+                      <div className="w-full h-1.5 bg-muted-foreground/20 rounded-full overflow-hidden mb-1.5">
+                        <div className={`h-full ${phaseColor} rounded-full transition-all duration-300`} style={{ width: `${progressPct}%` }} />
+                      </div>
+                      {/* Phase steps */}
+                      <div className="flex gap-0.5 mb-1.5">
+                        {(['TRAVEL', 'ENGAGE', 'AFTERMATH'] as const).map((p) => (
+                          <div key={p} className={`flex-1 h-0.5 rounded-full ${
+                            p === phaseLabel ? phaseColor : 
+                            (['TRAVEL', 'ENGAGE', 'AFTERMATH'].indexOf(p) < ['TRAVEL', 'ENGAGE', 'AFTERMATH'].indexOf(phaseLabel)) ? 'bg-primary/60' : 'bg-muted-foreground/15'
+                          }`} />
+                        ))}
+                      </div>
+                      {/* Agents */}
+                      <div className="flex flex-wrap gap-1">
+                        {missionAgents.map((a) => (
+                          <span key={a.id} className={`text-[10px] px-1.5 py-0.5 rounded border ${
+                            a.morality === 'ROGUE' ? 'border-accent/30 text-accent' : 'border-primary/30 text-primary'
+                          } bg-background/50 font-mono`}>
+                            {a.name} <span className="text-muted-foreground">pw{a.power}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ─── Dispatch Panel ─── */}
           <div className={panel}>
